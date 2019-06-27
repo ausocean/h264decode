@@ -4,6 +4,38 @@ import "fmt"
 
 const MB_TYPE_INFERRED = 1000
 
+type mbType uint
+
+// I slice macroblock types.
+const (
+	iNxN mbType = iota
+	i16x16000
+	i16x16100
+	i16x16200
+	i16x16300
+	i16x16010
+	i16x16110
+	i16x16210
+	i16x16310
+	i16x16020
+	i16x16120
+	i16x16220
+	i16x16320
+	i16x16001
+	i16x16101
+	i16x16201
+	i16x16301
+	i16x16011
+	i16x16111
+	i16x16211
+	i16x16311
+	i16x16021
+	i16x16121
+	i16x16221
+	i16x16321
+	iPCM
+)
+
 var (
 	ISliceMbType = map[int]string{
 		0:  "I_NxN",

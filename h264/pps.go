@@ -49,27 +49,27 @@ func NewPPS(sps *SPS, rbsp []byte, showPacket bool) *PPS {
 		return false
 	}
 
-	pps.ID = ue(b.golomb())
-	pps.SPSID = ue(b.golomb())
+	pps.ID, _ = readUe(nil)
+	pps.SPSID, _ = readUe(nil)
 	pps.EntropyCodingMode = b.NextField("EntropyCodingModeFlag", 1)
 	pps.BottomFieldPicOrderInFramePresent = flagField()
-	pps.NumSliceGroupsMinus1 = ue(b.golomb())
+	pps.NumSliceGroupsMinus1, _ = readUe(nil)
 	if pps.NumSliceGroupsMinus1 > 0 {
-		pps.SliceGroupMapType = ue(b.golomb())
+		pps.SliceGroupMapType, _ = readUe(nil)
 		if pps.SliceGroupMapType == 0 {
 			for iGroup := 0; iGroup <= pps.NumSliceGroupsMinus1; iGroup++ {
-				pps.RunLengthMinus1[iGroup] = ue(b.golomb())
+				pps.RunLengthMinus1[iGroup], _ = readUe(nil)
 			}
 		} else if pps.SliceGroupMapType == 2 {
 			for iGroup := 0; iGroup < pps.NumSliceGroupsMinus1; iGroup++ {
-				pps.TopLeft[iGroup] = ue(b.golomb())
-				pps.BottomRight[iGroup] = ue(b.golomb())
+				pps.TopLeft[iGroup], _ = readUe(nil)
+				pps.BottomRight[iGroup], _ = readUe(nil)
 			}
 		} else if pps.SliceGroupMapType > 2 && pps.SliceGroupMapType < 6 {
 			pps.SliceGroupChangeDirection = flagField()
-			pps.SliceGroupChangeRateMinus1 = ue(b.golomb())
+			pps.SliceGroupChangeRateMinus1, _ = readUe(nil)
 		} else if pps.SliceGroupMapType == 6 {
-			pps.PicSizeInMapUnitsMinus1 = ue(b.golomb())
+			pps.PicSizeInMapUnitsMinus1, _ = readUe(nil)
 			for i := 0; i <= pps.PicSizeInMapUnitsMinus1; i++ {
 				pps.SliceGroupId[i] = b.NextField(
 					fmt.Sprintf("SliceGroupId[%d]", i),
@@ -78,13 +78,13 @@ func NewPPS(sps *SPS, rbsp []byte, showPacket bool) *PPS {
 		}
 
 	}
-	pps.NumRefIdxL0DefaultActiveMinus1 = ue(b.golomb())
-	pps.NumRefIdxL1DefaultActiveMinus1 = ue(b.golomb())
+	pps.NumRefIdxL0DefaultActiveMinus1, _ = readUe(nil)
+	pps.NumRefIdxL1DefaultActiveMinus1, _ = readUe(nil)
 	pps.WeightedPred = flagField()
 	pps.WeightedBipred = b.NextField("WeightedBipredIDC", 2)
-	pps.PicInitQpMinus26 = se(b.golomb())
-	pps.PicInitQsMinus26 = se(b.golomb())
-	pps.ChromaQpIndexOffset = se(b.golomb())
+	pps.PicInitQpMinus26, _ = readSe(nil)
+	pps.PicInitQsMinus26, _ = readSe(nil)
+	pps.ChromaQpIndexOffset, _ = readSe(nil)
 	pps.DeblockingFilterControlPresent = flagField()
 	pps.ConstrainedIntraPred = flagField()
 	pps.RedundantPicCntPresent = flagField()
@@ -119,7 +119,7 @@ func NewPPS(sps *SPS, rbsp []byte, showPacket bool) *PPS {
 					}
 				}
 			}
-			pps.SecondChromaQpIndexOffset = se(b.golomb())
+			pps.SecondChromaQpIndexOffset, _ = readSe(nil)
 		}
 		b.MoreRBSPData()
 		// rbspTrailingBits()

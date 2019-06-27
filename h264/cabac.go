@@ -1,72 +1,12 @@
 package h264
 
+import "errors"
+
 const (
 	NaCtxId            = 10000
 	NA_SUFFIX          = -1
 	MbAddrNotAvailable = 10000
 )
-
-// G.7.4.3.4 via G.7.3.3.4 via 7.3.2.13 for NalUnitType 20 or 21
-// refLayerMbWidthC is equal to MbWidthC for the reference layer representation
-func RefMbW(chromaFlag, refLayerMbWidthC int) int {
-	if chromaFlag == 0 {
-		return 16
-	}
-	return refLayerMbWidthC
-}
-
-// refLayerMbHeightC is equal to MbHeightC for the reference layer representation
-func RefMbH(chromaFlag, refLayerMbHeightC int) int {
-	if chromaFlag == 0 {
-		return 16
-	}
-	return refLayerMbHeightC
-}
-func XOffset(xRefMin16, refMbW int) int {
-	return (((xRefMin16 - 64) >> 8) << 4) - (refMbW >> 1)
-}
-func YOffset(yRefMin16, refMbH int) int {
-	return (((yRefMin16 - 64) >> 8) << 4) - (refMbH >> 1)
-}
-func MbWidthC(sps *SPS) int {
-	mbWidthC := 16 / SubWidthC(sps)
-	if sps.ChromaFormat == 0 || sps.UseSeparateColorPlane {
-		mbWidthC = 0
-	}
-	return mbWidthC
-}
-func MbHeightC(sps *SPS) int {
-	mbHeightC := 16 / SubHeightC(sps)
-	if sps.ChromaFormat == 0 || sps.UseSeparateColorPlane {
-		mbHeightC = 0
-	}
-	return mbHeightC
-}
-
-// G.8.6.2.2.2
-func Xr(x, xOffset, refMbW int) int {
-	return (x + xOffset) % refMbW
-}
-func Yr(y, yOffset, refMbH int) int {
-	return (y + yOffset) % refMbH
-}
-
-// G.8.6.2.2.2
-func Xd(xr, refMbW int) int {
-	if xr >= refMbW/2 {
-		return xr - refMbW
-	}
-	return xr + 1
-}
-func Yd(yr, refMbH int) int {
-	if yr >= refMbH/2 {
-		return yr - refMbH
-	}
-	return yr + 1
-}
-func Ya(yd, refMbH, signYd int) int {
-	return yd - (refMbH/2+1)*signYd
-}
 
 // 6.4.11.1
 func MbAddr(xd, yd, predPartWidth int) {
@@ -173,129 +113,113 @@ func initCabac(binarization *Binarization, context *SliceContext) *CABAC {
 	}
 }
 
+func BinMbStr(mbt mbType, st sliceType) ([]int, error) {
+	switch mbt {
+	case sliceTypeI:
+	case sliceTypeP, sliceTypeSP:
+	case sliceTypeB:
+	default:
+		return nil, errors.New("invalid macroblock type")
+	}
+}
+
+func BinSubMbStr(mbt mbType, st sliceType) {
+
+}
+
 // Table 9-36, 9-37
 // func BinIdx(mbType int, sliceTypeName string) []int {
 // Map of SliceTypeName[MbType][]int{binString}
 // {"SliceTypeName": {MbTypeCode: []BinString}}
+var binISlice = [][]int{
+	{0},
+	{1, 0, 0, 0, 0, 0},
+	{1, 0, 0, 0, 0, 1},
+	{1, 0, 0, 0, 1, 0},
+	{1, 0, 0, 0, 1, 1},
+	{1, 0, 0, 1, 0, 0, 0},
+	{1, 0, 0, 1, 0, 0, 1},
+	{1, 0, 0, 1, 0, 1, 0},
+	{1, 0, 0, 1, 0, 1, 1},
+	{1, 0, 0, 1, 1, 0, 0},
+	{1, 0, 0, 1, 1, 0, 1},
+	{1, 0, 0, 1, 1, 1, 0},
+	{1, 0, 0, 1, 1, 1, 1},
+	{1, 0, 1, 0, 0, 0},
+	{1, 0, 1, 0, 0, 1},
+	{1, 0, 1, 0, 1, 0},
+	{1, 0, 1, 0, 1, 1},
+	{1, 0, 1, 1, 0, 0, 0},
+	{1, 0, 1, 1, 0, 0, 1},
+	{1, 0, 1, 1, 0, 1, 0},
+	{1, 0, 1, 1, 0, 1, 1},
+	{1, 0, 1, 1, 1, 0, 0},
+	{1, 0, 1, 1, 1, 0, 1},
+	{1, 0, 1, 1, 1, 1, 0},
+	{1, 0, 1, 1, 1, 1, 1},
+	{1, 1},
+}
+
+var binPOrSpSlice = [][]int{
+	{0, 0, 0},
+	{0, 1, 1},
+	{0, 1, 0},
+	{0, 0, 1},
+	{},
+	{1},
+}
+
+var binBSlice = [][]int{
+	{0},
+	{1, 0, 0},
+	{1, 0, 1},
+	{1, 1, 0, 0, 0, 0},
+	{1, 1, 0, 0, 0, 1},
+	{1, 1, 0, 0, 1, 0},
+	{1, 1, 0, 0, 1, 1},
+	{1, 1, 0, 1, 0, 0},
+	{1, 1, 0, 1, 0, 1},
+	{1, 1, 0, 1, 1, 0},
+	{1, 1, 0, 1, 1, 1},
+	{1, 1, 1, 1, 1, 0},
+	{1, 1, 1, 0, 0, 0, 0},
+	{1, 1, 1, 0, 0, 0, 1},
+	{1, 1, 1, 0, 0, 1, 0},
+	{1, 1, 1, 0, 0, 1, 1},
+	{1, 1, 1, 0, 1, 0, 0},
+	{1, 1, 1, 0, 1, 0, 1},
+	{1, 1, 1, 0, 1, 1, 0},
+	{1, 1, 1, 0, 1, 1, 1},
+	{1, 1, 1, 1, 0, 0, 0},
+	{1, 1, 1, 1, 0, 0, 1},
+	{1, 1, 1, 1, 1, 1},
+}
+
+var binSubPOrSpSlice = [][]int{
+	{1},
+	{0, 0},
+	{0, 1, 1},
+	{0, 1, 0},
+}
+
+var binSubBSlice = [][]int{
+	{0},
+	{1, 0, 0},
+	{1, 0, 1},
+	{1, 1, 0, 0, 0},
+	{1, 1, 0, 0, 1},
+	{1, 1, 0, 1, 0},
+	{1, 1, 0, 1, 1},
+	{1, 1, 1, 0, 0, 0},
+	{1, 1, 1, 0, 0, 1},
+	{1, 1, 1, 0, 1, 0},
+	{1, 1, 1, 1, 0, 1, 1},
+	{1, 1, 1, 1, 1, 0},
+	{1, 1, 1, 1, 1, 1},
+}
+
 var (
-	binIdxMbMap = map[string]map[int][]int{
-		"I": map[int][]int{
-			0:  []int{0},
-			1:  []int{1, 0, 0, 0, 0, 0},
-			2:  []int{1, 0, 0, 0, 0, 1},
-			3:  []int{1, 0, 0, 0, 1, 0},
-			4:  []int{1, 0, 0, 0, 1, 1},
-			5:  []int{1, 0, 0, 1, 0, 0, 0},
-			6:  []int{1, 0, 0, 1, 0, 0, 1},
-			7:  []int{1, 0, 0, 1, 0, 1, 0},
-			8:  []int{1, 0, 0, 1, 0, 1, 1},
-			9:  []int{1, 0, 0, 1, 1, 0, 0},
-			10: []int{1, 0, 0, 1, 1, 0, 1},
-			11: []int{1, 0, 0, 1, 1, 1, 0},
-			12: []int{1, 0, 0, 1, 1, 1, 1},
-			13: []int{1, 0, 1, 0, 0, 0},
-			14: []int{1, 0, 1, 0, 0, 1},
-			15: []int{1, 0, 1, 0, 1, 0},
-			16: []int{1, 0, 1, 0, 1, 1},
-			17: []int{1, 0, 1, 1, 0, 0, 0},
-			18: []int{1, 0, 1, 1, 0, 0, 1},
-			19: []int{1, 0, 1, 1, 0, 1, 0},
-			20: []int{1, 0, 1, 1, 0, 1, 1},
-			21: []int{1, 0, 1, 1, 1, 0, 0},
-			22: []int{1, 0, 1, 1, 1, 0, 1},
-			23: []int{1, 0, 1, 1, 1, 1, 0},
-			24: []int{1, 0, 1, 1, 1, 1, 1},
-			25: []int{1, 1},
-		},
-		// Table 9-37
-		"P": map[int][]int{
-			0:  []int{0, 0, 0},
-			1:  []int{0, 1, 1},
-			2:  []int{0, 1, 0},
-			3:  []int{0, 0, 1},
-			4:  []int{},
-			5:  []int{1},
-			6:  []int{1},
-			7:  []int{1},
-			8:  []int{1},
-			9:  []int{1},
-			10: []int{1},
-			11: []int{1},
-			12: []int{1},
-			13: []int{1},
-			14: []int{1},
-			15: []int{1},
-			16: []int{1},
-			17: []int{1},
-			18: []int{1},
-			19: []int{1},
-			20: []int{1},
-			21: []int{1},
-			22: []int{1},
-			23: []int{1},
-			24: []int{1},
-			25: []int{1},
-			26: []int{1},
-			27: []int{1},
-			28: []int{1},
-			29: []int{1},
-			30: []int{1},
-		},
-		// Table 9-37
-		"SP": map[int][]int{
-			0:  []int{0, 0, 0},
-			1:  []int{0, 1, 1},
-			2:  []int{0, 1, 0},
-			3:  []int{0, 0, 1},
-			4:  []int{},
-			5:  []int{1},
-			6:  []int{1},
-			7:  []int{1},
-			8:  []int{1},
-			9:  []int{1},
-			10: []int{1},
-			11: []int{1},
-			12: []int{1},
-			13: []int{1},
-			14: []int{1},
-			15: []int{1},
-			16: []int{1},
-			17: []int{1},
-			18: []int{1},
-			19: []int{1},
-			20: []int{1},
-			21: []int{1},
-			22: []int{1},
-			23: []int{1},
-			24: []int{1},
-			25: []int{1},
-			26: []int{1},
-			27: []int{1},
-			28: []int{1},
-			29: []int{1},
-			30: []int{1},
-		},
-		// TODO: B Slice table 9-37
-	}
-
-	// Map of SliceTypeName[SubMbType][]int{binString}
-	binIdxSubMbMap = map[string]map[int][]int{
-		"P": map[int][]int{
-			0: []int{1},
-			1: []int{0, 0},
-			2: []int{0, 1, 1},
-			3: []int{0, 1, 0},
-		},
-		"SP": map[int][]int{
-			0: []int{1},
-			1: []int{0, 0},
-			2: []int{0, 1, 1},
-			3: []int{0, 1, 0},
-		},
-		// TODO: B slice table 9-38
-	}
-
-	// Table 9-36, 9-37
+	//,Table,9-36, 9-37
 	MbBinIdx = []int{1, 2, 3, 4, 5, 6}
 
 	// Table 9-38
