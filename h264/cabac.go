@@ -1,6 +1,9 @@
 package h264
 
-import "github.com/pkg/errors"
+import (
+	"github.com/ausocean/h264decode/h264/bits"
+	"github.com/pkg/errors"
+)
 
 const (
 	NaCtxId            = 10000
@@ -97,7 +100,7 @@ func CondTermFlag(mbAddr, mbSkipFlag int) int {
 }
 
 // s9.3.3 p 278: Returns the value of the syntax element
-func (bin *Binarization) Decode(sliceContext *SliceContext, b *BitReader, rbsp []byte) {
+func (bin *Binarization) Decode(sliceContext *SliceContext, b *bits.BitReader, rbsp []byte) {
 	if bin.SyntaxElement == "MbType" {
 		bin.binString = binIdxMbMap[sliceContext.Slice.Data.SliceTypeName][sliceContext.Slice.Data.MbType]
 	} else {
@@ -438,9 +441,8 @@ func (b *Binarization) IsBinStringMatch(bits []int) bool {
 }
 
 // 9.3.1.2: output is codIRange and codIOffset
-func initDecodingEngine(bitReader *BitReader) (int, int) {
+func initDecodingEngine(bitReader *bits.BitReader) (int, int) {
 	logger.Printf("debug: initializing arithmetic decoding engine\n")
-	bitReader.LogStreamPosition()
 	codIRange := 510
 	codIOffset := bitReader.NextField("Initial CodIOffset", 9)
 	logger.Printf("debug: codIRange: %d :: codIOffsset: %d\n", codIRange, codIOffset)

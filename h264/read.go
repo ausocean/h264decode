@@ -3,15 +3,17 @@ package h264
 import (
 	"io"
 	"os"
+
+	"github.com/ausocean/h264decode/h264/bits"
 )
 
 type H264Reader struct {
 	IsStarted    bool
 	Stream       io.Reader
-	NalUnits     []*BitReader
+	NalUnits     []*bits.BitReader
 	VideoStreams []*VideoStream
 	DebugFile    *os.File
-	*BitReader
+	*bits.BitReader
 }
 
 func (h *H264Reader) BufferToReader(cntBytes int) error {
