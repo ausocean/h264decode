@@ -10,14 +10,22 @@ AUTHORS
 // Package bits provides a bitreader interface and implementation.
 package bits
 
-import "fmt"
+import (
+	"fmt"
+	"io"
+)
 
 type BitReader struct {
+	r          io.Reader
 	bytes      []byte
 	byteOffset int
 	bitOffset  int
 	bitsRead   int
 	Debug      bool
+}
+
+func NewBitreader(r io.Reader) *BitReader {
+	return &BitReader{r: r}
 }
 
 func (b *BitReader) Bytes() []byte {
