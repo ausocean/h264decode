@@ -16,20 +16,25 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	maxBits  = 64
+	maxBytes = maxBits / 8
+)
+
 type BitReader struct {
 	r     io.Reader
 	cache []byte
 	bits  uint
+	tmp   []byte
 }
 
 func NewBitReader(r io.Reader) *BitReader {
-	return &BitReader{r: r, bits: 8}
+	return &BitReader{r: r, bits: 8, tmp: make([]byte, 0, maxBytes)}
 }
 
 var errMaxBits = errors.New("can not read more than 64 bits")
 
 func (b *BitReader) ReadBits(n uint) (uint64, error) {
-	const maxBits = 64
 	if n > maxBits {
 		return 0, errMaxBits
 	}
@@ -37,12 +42,12 @@ func (b *BitReader) ReadBits(n uint) (uint64, error) {
 	cl := b.cacheLen()
 	if n > cl {
 		nbytes := math.Ceil(float64(n-cl) / 8.0)
-		tmp := make([]byte, int(nbytes))
-		_, err := b.r.Read(tmp)
+		b.tmp = b.tmp[:int(nbytes)]
+		_, err := b.r.Read(b.tmp)
 		if err != nil {
 			return 0, errors.Wrap(err, "could not read more data from source")
 		}
-		b.cache = append(b.cache, tmp...)
+		b.cache = append(b.cache, b.tmp...)
 	}
 
 	var res uint64
