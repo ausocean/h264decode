@@ -21,15 +21,30 @@ const (
 	maxBytes = maxBits / 8
 )
 
+type cache []byte
+
+func (c *cache) add(d []byte) {
+	*c = append(*c, d...)
+}
+
+func (c *cache) delete() {
+	copy((*c)[0:], (*c)[1:])
+	(*c) = (*c)[:len(*c)-1]
+}
+
+func (c *cache) next() byte {
+	return (*c)[0]
+}
+
 type BitReader struct {
-	r     io.Reader
-	cache []byte
-	bits  uint
-	tmp   []byte
+	r    io.Reader
+	c    *cache
+	bits uint
+	tmp  []byte
 }
 
 func NewBitReader(r io.Reader) *BitReader {
-	return &BitReader{r: r, bits: 8, tmp: make([]byte, 0, maxBytes)}
+	return &BitReader{r: r, bits: 8, tmp: make([]byte, 0, maxBytes), c: (*cache)(&[]byte{})}
 }
 
 var errMaxBits = errors.New("can not read more than 64 bits")
@@ -47,7 +62,7 @@ func (b *BitReader) ReadBits(n uint) (uint64, error) {
 		if err != nil {
 			return 0, errors.Wrap(err, "could not read more data from source")
 		}
-		b.cache = append(b.cache, b.tmp...)
+		b.c.add(b.tmp)
 	}
 
 	var res uint64
@@ -55,19 +70,19 @@ func (b *BitReader) ReadBits(n uint) (uint64, error) {
 		if n > b.bits {
 			res = res << b.bits
 			mask := uint64(0xff >> (8 - b.bits))
-			res |= uint64(b.cache[0]) & mask
+			res |= uint64(b.c.next()) & mask
 			n -= b.bits
 			b.bits = 8
-			b.cache = b.cache[1:]
+			b.c.delete()
 			continue
 		}
 
 		res = res << n
 		mask := uint64(0xff >> (8 - n))
-		res |= uint64((b.cache[0] >> (b.bits - n))) & mask
+		res |= uint64((b.c.next() >> (b.bits - n))) & mask
 		if n == b.bits {
 			b.bits = 8
-			b.cache = b.cache[1:]
+			b.c.delete()
 			return res, nil
 		}
 		b.bits -= n
@@ -76,7 +91,7 @@ func (b *BitReader) ReadBits(n uint) (uint64, error) {
 }
 
 func (b *BitReader) cacheLen() uint {
-	return 8*(uint(len(b.cache))-1) + b.bits
+	return 8*(uint(len(*b.c))-1) + b.bits
 }
 
 func (b *BitReader) PeekBits(n int) (uint64, int, error) {
