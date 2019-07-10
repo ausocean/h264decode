@@ -136,7 +136,3 @@ func (b *BitReader) resizeCache(n uint) error {
 	}
 	return nil
 }
-
-func (b *BitReader) Read(buf []byte) (int, error) {
-	return 0, nil
-}
