@@ -92,3 +92,61 @@ func TestReadBits(t *testing.T) {
 		}
 	}
 }
+
+func TestPeekBits(t *testing.T) {
+	tests := []struct {
+		in    []byte
+		peeks []uint
+		wants []uint64
+		errs  []error
+	}{
+		{
+			[]byte{0xff},
+			[]uint{8},
+			[]uint64{0xff},
+			[]error{nil},
+		},
+		{
+			[]byte{0x8f, 0xe3},
+			[]uint{4, 8, 16},
+			[]uint64{0x8, 0x8f, 0x8fe3},
+			[]error{nil, nil, nil},
+		},
+		{
+			[]byte{0x8f, 0xe3, 0x8f, 0xe3},
+			[]uint{32},
+			[]uint64{0x8fe38fe3},
+			[]error{nil},
+		},
+		{
+			[]byte{0x8f, 0xe3},
+			[]uint{3, 5, 10},
+			[]uint64{0x4, 0x11, 0x23f},
+			[]error{nil, nil, nil},
+		},
+		{
+			[]byte{0xff},
+			[]uint{1, 7, 10},
+			[]uint64{0x01, 0x7f, 0x00},
+			[]error{nil, nil, io.EOF},
+		},
+	}
+
+	for i, test := range tests {
+		br := NewBitReader(bytes.NewReader(test.in))
+		gotPeeks := make([]uint64, len(test.peeks))
+
+		var err error
+		for j, n := range test.peeks {
+			gotPeeks[j], err = br.PeekBits(n)
+			if err != nil && errors.Cause(err) != test.errs[j] {
+				t.Fatalf("did not expect error: %v for peek: %d test: %d", err, j, i)
+			}
+		}
+
+		// Now check reads.
+		if !reflect.DeepEqual(gotPeeks, test.wants) {
+			t.Errorf("did not get expected results from PeekBits for test: %d\nGot: %v\nWant: %v\n", i, gotPeeks, test.wants)
+		}
+	}
+}

@@ -35,8 +35,8 @@ func (c *cache) delete() {
 }
 
 // next provides the byte at the start of the cache.
-func (c *cache) next() byte {
-	return (*c)[0]
+func (c *cache) get(i int) byte {
+	return (*c)[i]
 }
 
 // BitReader is an io.Reader that provides additional methods for reading bits
@@ -73,15 +73,9 @@ func (b *BitReader) ReadBits(n uint) (uint64, error) {
 		return 0, errMaxBits
 	}
 
-	l := 8*(uint(len(*b.c))-1) + b.bits
-	if n > l {
-		nbytes := math.Ceil(float64(n-l) / 8.0)
-		b.tmp = b.tmp[:int(nbytes)]
-		_, err := b.r.Read(b.tmp)
-		if err != nil {
-			return 0, errors.Wrap(err, "could not read more data from source")
-		}
-		b.c.add(b.tmp)
+	err := b.resizeCache(n)
+	if err != nil {
+		return 0, errors.Wrap(err, "could not resize cache")
 	}
 
 	var res uint64
@@ -89,7 +83,7 @@ func (b *BitReader) ReadBits(n uint) (uint64, error) {
 		if n > b.bits {
 			res = res << b.bits
 			mask := uint64(0xff >> (8 - b.bits))
-			res |= uint64(b.c.next()) & mask
+			res |= uint64(b.c.get(0)) & mask
 			n -= b.bits
 			b.bits = 8
 			b.c.delete()
@@ -98,7 +92,7 @@ func (b *BitReader) ReadBits(n uint) (uint64, error) {
 
 		res = res << n
 		mask := uint64(0xff >> (8 - n))
-		res |= uint64((b.c.next() >> (b.bits - n))) & mask
+		res |= uint64((b.c.get(0) >> (b.bits - n))) & mask
 		if n == b.bits {
 			b.bits = 8
 			b.c.delete()
@@ -109,8 +103,62 @@ func (b *BitReader) ReadBits(n uint) (uint64, error) {
 	}
 }
 
-func (b *BitReader) PeekBits(n int) (uint64, int, error) {
-	return 0, 0, nil
+// PeekBits provides the next n bits, but without advancing through the source.
+// For example, with a source as []byte{0x8f,0xe3} (1000 1111, 1110 0011), we
+// would get the following results for consequtive peeks with n values:
+// n = 4, res = 0x8 (1000)
+// n = 8, res = 0x8f (1000 1111)
+// n = 16, res = 0x8fe3 (1000 1111, 1110 0011)
+func (b *BitReader) PeekBits(n uint) (uint64, error) {
+	if n > maxBits {
+		return 0, errMaxBits
+	}
+
+	err := b.resizeCache(n)
+	if err != nil {
+		return 0, errors.Wrap(err, "could not resize cache")
+	}
+
+	bits := b.bits
+	var i int
+
+	var res uint64
+	for {
+		if n > bits {
+			res = res << bits
+			mask := uint64(0xff >> (8 - bits))
+			res |= uint64(b.c.get(i)) & mask
+			n -= bits
+			bits = 8
+			i++
+			continue
+		}
+
+		res = res << n
+		mask := uint64(0xff >> (8 - n))
+		res |= uint64((b.c.get(i) >> (bits - n))) & mask
+		if n == bits {
+			bits = 8
+			i++
+			return res, nil
+		}
+		bits -= n
+		return res, nil
+	}
+}
+
+func (b *BitReader) resizeCache(n uint) error {
+	l := 8*(uint(len(*b.c))-1) + b.bits
+	if n > l {
+		nbytes := math.Ceil(float64(n-l) / 8.0)
+		b.tmp = b.tmp[:int(nbytes)]
+		_, err := b.r.Read(b.tmp)
+		if err != nil {
+			return errors.Wrap(err, "could not read more data from source")
+		}
+		b.c.add(b.tmp)
+	}
+	return nil
 }
 
 func (b *BitReader) Read(buf []byte) (int, error) {
