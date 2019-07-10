@@ -17,25 +17,30 @@ import (
 )
 
 const (
-	maxBits  = 64
-	maxBytes = maxBits / 8
+	maxBits  = 64          // Max number of bits we can read in one go.
+	maxBytes = maxBits / 8 // Max number of bytes in the cache.
 )
 
 type cache []byte
 
+// add adds a byte to the end of the cache.
 func (c *cache) add(d []byte) {
 	*c = append(*c, d...)
 }
 
+// delete removes the byte at the start of the cache.
 func (c *cache) delete() {
 	copy((*c)[0:], (*c)[1:])
 	(*c) = (*c)[:len(*c)-1]
 }
 
+// next provides the byte at the start of the cache.
 func (c *cache) next() byte {
 	return (*c)[0]
 }
 
+// BitReader is an io.Reader that provides additional methods for reading bits
+// ReadBits, and peeking bits, PeekBits.
 type BitReader struct {
 	r    io.Reader
 	c    *cache
@@ -43,12 +48,21 @@ type BitReader struct {
 	tmp  []byte
 }
 
+// NewBitReader returns a new BitReader.
 func NewBitReader(r io.Reader) *BitReader {
 	return &BitReader{r: r, bits: 8, tmp: make([]byte, 0, maxBytes), c: (*cache)(&[]byte{})}
 }
 
+// Error used by ReadBits.
 var errMaxBits = errors.New("can not read more than 64 bits")
 
+// ReadBits reads n bits from the source and returns as an uint64.
+// For example, with a source as []byte{0x8f,0xe3} (1000 1111, 1110 0011), we
+// would get the following results for consequtive reads with n values:
+// n = 4, res = 0x8 (1000)
+// n = 2, res = 0x3 (0011)
+// n = 4, res = 0xf (1111)
+// n = 6, res = 0x23 (0010 0011)
 func (b *BitReader) ReadBits(n uint) (uint64, error) {
 	if n > maxBits {
 		return 0, errMaxBits
