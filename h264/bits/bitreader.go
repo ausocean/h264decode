@@ -18,7 +18,7 @@ import (
 
 const (
 	maxBits  = 64          // Max number of bits we can read in one go.
-	maxBytes = maxBits / 8 // Max number of bytes in the cache.
+	maxBytes = maxBits / 8 // Max number of bytes we will need in the tmp slice.
 )
 
 type cache []byte
@@ -42,15 +42,20 @@ func (c *cache) next() byte {
 // BitReader is an io.Reader that provides additional methods for reading bits
 // ReadBits, and peeking bits, PeekBits.
 type BitReader struct {
-	r    io.Reader
-	c    *cache
-	bits uint
-	tmp  []byte
+	r    io.Reader // The data source.
+	c    *cache    // Cache to hold data we're in the middle of reading.
+	bits uint      // Denotes the number of bits left in the start byte of the cache.
+	tmp  []byte    // Used to get data from the source and copy into the cache.
 }
 
 // NewBitReader returns a new BitReader.
 func NewBitReader(r io.Reader) *BitReader {
-	return &BitReader{r: r, bits: 8, tmp: make([]byte, 0, maxBytes), c: (*cache)(&[]byte{})}
+	return &BitReader{
+		r:    r,
+		bits: 8,
+		tmp:  make([]byte, 0, maxBytes),
+		c:    (*cache)(&[]byte{}),
+	}
 }
 
 // Error used by ReadBits.
