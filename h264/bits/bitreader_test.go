@@ -1,6 +1,6 @@
 /*
-NAME
-  bitreader_test.go
+DESCRIPTION
+  bitreader_test.go provides testing for functionality defined in bitreader.go.
 
 AUTHORS
   Saxon Nelson-Milton <saxon@ausocean.org>, The Australian Ocean Laboratory (AusOcean)
@@ -17,12 +17,13 @@ import (
 	"github.com/pkg/errors"
 )
 
+// TestReadBits checks that BitReader.ReadBits behaves as expected.
 func TestReadBits(t *testing.T) {
 	tests := []struct {
-		in    []byte
-		reads []uint
-		wants []uint64
-		errs  []error
+		in    []byte   // The bytes the source io.Reader will be initialised with.
+		reads []uint   // The values of n for the reads we wish to do.
+		wants []uint64 // The results we expect for each ReadBits call.
+		errs  []error  // The error expected from each ReadBits call.
 	}{
 		{
 			[]byte{0xff},
@@ -76,8 +77,12 @@ func TestReadBits(t *testing.T) {
 
 	for i, test := range tests {
 		br := NewBitReader(bytes.NewReader(test.in))
+
+		// Holds the results from the reads.
 		gotReads := make([]uint64, len(test.reads))
 
+		// For each value of n defined in test.reads, we call br.ReadBits, collect
+		// the result and check the error.
 		var err error
 		for j, n := range test.reads {
 			gotReads[j], err = br.ReadBits(n)
@@ -86,13 +91,14 @@ func TestReadBits(t *testing.T) {
 			}
 		}
 
-		// Now check reads.
+		// Now we can check the read results.
 		if !reflect.DeepEqual(gotReads, test.wants) {
 			t.Errorf("did not get expected results from ReadBits for test: %d\nGot: %v\nWant: %v\n", i, gotReads, test.wants)
 		}
 	}
 }
 
+// TestPeekBits checks that BitReader.PeekBits behaves as expected.
 func TestPeekBits(t *testing.T) {
 	tests := []struct {
 		in    []byte
@@ -134,8 +140,12 @@ func TestPeekBits(t *testing.T) {
 
 	for i, test := range tests {
 		br := NewBitReader(bytes.NewReader(test.in))
+
+		// Holds the results from the peeks.
 		gotPeeks := make([]uint64, len(test.peeks))
 
+		// For each value of n defined in test.peeks, we call br.PeekBits, collect
+		// the result and check the error.
 		var err error
 		for j, n := range test.peeks {
 			gotPeeks[j], err = br.PeekBits(n)
@@ -144,7 +154,7 @@ func TestPeekBits(t *testing.T) {
 			}
 		}
 
-		// Now check reads.
+		// Now we can check the peek results.
 		if !reflect.DeepEqual(gotPeeks, test.wants) {
 			t.Errorf("did not get expected results from PeekBits for test: %d\nGot: %v\nWant: %v\n", i, gotPeeks, test.wants)
 		}

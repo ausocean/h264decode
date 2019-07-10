@@ -1,12 +1,14 @@
 /*
-NAME
-  bitreader.go
+DESCRIPTION
+  bitreader.go provides a bit reader implementation that can read or peek from
+  an io.Reader data source.
 
 AUTHORS
   Saxon Nelson-Milton <saxon@ausocean.org>, The Australian Ocean Laboratory (AusOcean)
 */
 
-// Package bits provides a bitreader interface and implementation.
+// Package bits provides a bit reader implementation that can read or peek from
+// an io.Reader data source.
 package bits
 
 import (
@@ -39,8 +41,8 @@ func (c *cache) get(i int) byte {
 	return (*c)[i]
 }
 
-// BitReader is an io.Reader that provides additional methods for reading bits
-// ReadBits, and peeking bits, PeekBits.
+// BitReader is a bit reader that provides methods for reading bits from an
+// io.Reader source.
 type BitReader struct {
 	r    io.Reader // The data source.
 	c    *cache    // Cache to hold data we're in the middle of reading.
@@ -119,14 +121,8 @@ func (b *BitReader) readBits(n uint, bits *uint, i *int, advance func()) (uint64
 	}
 }
 
-//
-func appendBits(res uint64, rshift, mshift, bshift uint, from byte) uint64 {
-	res = res << rshift
-	mask := uint64(0xff >> mshift)
-	res |= uint64(from>>bshift) & mask
-	return res
-}
-
+// resizeCache checks that the cache contains enough data for n reads, and if
+// not adds some more data to it form the source.
 func (b *BitReader) resizeCache(n uint) error {
 	l := 8*(uint(len(*b.c))-1) + b.bits
 	if n > l {
@@ -139,4 +135,12 @@ func (b *BitReader) resizeCache(n uint) error {
 		b.c.add(b.tmp)
 	}
 	return nil
+}
+
+// appendBits appends bits to res and returns the result.
+func appendBits(res uint64, rshift, mshift, bshift uint, from byte) uint64 {
+	res = res << rshift
+	mask := uint64(0xff >> mshift)
+	res |= uint64(from>>bshift) & mask
+	return res
 }
