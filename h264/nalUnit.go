@@ -1,7 +1,5 @@
 package h264
 
-import "github.com/ausocean/h264decode/h264/bits"
-
 type NalUnit struct {
 	NumBytes                     int
 	ForbiddenZeroBit             int
@@ -38,7 +36,7 @@ func isEmulationPreventionThreeByte(b []byte) bool {
 	return b[0] == byte(0) && b[1] == byte(0) && b[2] == byte(3)
 }
 
-func NalUnitHeaderSvcExtension(nalUnit *NalUnit, b *bits.BitReader) {
+func NalUnitHeaderSvcExtension(nalUnit *NalUnit, b *BitReader) {
 	// TODO: Annex G
 	nalUnit.IdrFlag = b.NextField("IdrFlag", 1)
 	nalUnit.PriorityId = b.NextField("PriorityId", 6)
@@ -52,7 +50,7 @@ func NalUnitHeaderSvcExtension(nalUnit *NalUnit, b *bits.BitReader) {
 	nalUnit.ReservedThree2Bits = b.NextField("ReservedThree2Bits", 2)
 }
 
-func NalUnitHeader3davcExtension(nalUnit *NalUnit, b *bits.BitReader) {
+func NalUnitHeader3davcExtension(nalUnit *NalUnit, b *BitReader) {
 	// TODO: Annex J
 	nalUnit.ViewIdx = b.NextField("ViewIdx", 8)
 	nalUnit.DepthFlag = b.NextField("DepthFlag", 1)
@@ -61,7 +59,7 @@ func NalUnitHeader3davcExtension(nalUnit *NalUnit, b *bits.BitReader) {
 	nalUnit.AnchorPicFlag = b.NextField("AnchorPicFlag", 1)
 	nalUnit.InterViewFlag = b.NextField("InterViewFlag", 1)
 }
-func NalUnitHeaderMvcExtension(nalUnit *NalUnit, b *bits.BitReader) {
+func NalUnitHeaderMvcExtension(nalUnit *NalUnit, b *BitReader) {
 	// TODO: Annex H
 	nalUnit.NonIdrFlag = b.NextField("NonIdrFlag", 1)
 	nalUnit.PriorityId = b.NextField("PriorityId", 6)
@@ -80,7 +78,7 @@ func NewNalUnit(frame []byte, numBytesInNal int) *NalUnit {
 		NumBytes:    numBytesInNal,
 		HeaderBytes: 1,
 	}
-	b := &bits.BitReader{bytes: frame}
+	b := &BitReader{bytes: frame}
 	nalUnit.ForbiddenZeroBit = b.NextField("ForbiddenZeroBit", 1)
 	nalUnit.RefIdc = b.NextField("NalRefIdc", 2)
 	nalUnit.Type = b.NextField("NalUnitType", 5)

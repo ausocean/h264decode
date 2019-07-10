@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/ausocean/h264decode/h264/bits"
 	"github.com/pkg/errors"
 )
 
@@ -86,7 +85,7 @@ type SliceHeader struct {
 }
 
 type SliceData struct {
-	BitReader                *bits.BitReader
+	BitReader                *BitReader
 	CabacAlignmentOneBit     int
 	MbSkipRun                int
 	MbSkipFlag               bool
