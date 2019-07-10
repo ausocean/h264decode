@@ -70,7 +70,7 @@ var errMaxBits = errors.New("can not read more than 64 bits")
 // n = 6, res = 0x23 (0010 0011)
 func (b *BitReader) ReadBits(n uint) (uint64, error) {
 	var i int
-	return readBits(b, n, &b.bits, b.c, &i, func() { b.c.delete() })
+	return b.readBits(n, &b.bits, &i, func() { b.c.delete() })
 }
 
 // PeekBits provides the next n bits, but without advancing through the source.
@@ -82,10 +82,13 @@ func (b *BitReader) ReadBits(n uint) (uint64, error) {
 func (b *BitReader) PeekBits(n uint) (uint64, error) {
 	bits := b.bits
 	var i int
-	return readBits(b, n, &bits, b.c, &i, func() { i++ })
+	return b.readBits(n, &bits, &i, func() { i++ })
 }
 
-func readBits(b *BitReader, n uint, bits *uint, c *cache, i *int, advance func()) (uint64, error) {
+// readBits gets n bits from the source and either leaves the touched data in
+// the cache (usage with PeekBits), or advances the position in the source
+// (usage with ReadBits), as controlled by advance.
+func (b *BitReader) readBits(n uint, bits *uint, i *int, advance func()) (uint64, error) {
 	if n > maxBits {
 		return 0, errMaxBits
 	}
@@ -116,6 +119,7 @@ func readBits(b *BitReader, n uint, bits *uint, c *cache, i *int, advance func()
 	}
 }
 
+//
 func appendBits(res uint64, rshift, mshift, bshift uint, from byte) uint64 {
 	res = res << rshift
 	mask := uint64(0xff >> mshift)
