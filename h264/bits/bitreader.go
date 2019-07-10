@@ -69,38 +69,8 @@ var errMaxBits = errors.New("can not read more than 64 bits")
 // n = 4, res = 0xf (1111)
 // n = 6, res = 0x23 (0010 0011)
 func (b *BitReader) ReadBits(n uint) (uint64, error) {
-	if n > maxBits {
-		return 0, errMaxBits
-	}
-
-	err := b.resizeCache(n)
-	if err != nil {
-		return 0, errors.Wrap(err, "could not resize cache")
-	}
-
-	var res uint64
-	for {
-		if n > b.bits {
-			res = res << b.bits
-			mask := uint64(0xff >> (8 - b.bits))
-			res |= uint64(b.c.get(0)) & mask
-			n -= b.bits
-			b.bits = 8
-			b.c.delete()
-			continue
-		}
-
-		res = res << n
-		mask := uint64(0xff >> (8 - n))
-		res |= uint64((b.c.get(0) >> (b.bits - n))) & mask
-		if n == b.bits {
-			b.bits = 8
-			b.c.delete()
-			return res, nil
-		}
-		b.bits -= n
-		return res, nil
-	}
+	var i int
+	return readBits(b, n, &b.bits, b.c, &i, func() { b.c.delete() })
 }
 
 // PeekBits provides the next n bits, but without advancing through the source.
@@ -110,6 +80,12 @@ func (b *BitReader) ReadBits(n uint) (uint64, error) {
 // n = 8, res = 0x8f (1000 1111)
 // n = 16, res = 0x8fe3 (1000 1111, 1110 0011)
 func (b *BitReader) PeekBits(n uint) (uint64, error) {
+	bits := b.bits
+	var i int
+	return readBits(b, n, &bits, b.c, &i, func() { i++ })
+}
+
+func readBits(b *BitReader, n uint, bits *uint, c *cache, i *int, advance func()) (uint64, error) {
 	if n > maxBits {
 		return 0, errMaxBits
 	}
@@ -119,32 +95,32 @@ func (b *BitReader) PeekBits(n uint) (uint64, error) {
 		return 0, errors.Wrap(err, "could not resize cache")
 	}
 
-	bits := b.bits
-	var i int
-
 	var res uint64
 	for {
-		if n > bits {
-			res = res << bits
-			mask := uint64(0xff >> (8 - bits))
-			res |= uint64(b.c.get(i)) & mask
-			n -= bits
-			bits = 8
-			i++
+		if n > *bits {
+			res = appendBits(res, *bits, 8-*bits, 0, b.c.get(*i))
+			n -= *bits
+			*bits = 8
+			advance()
 			continue
 		}
 
-		res = res << n
-		mask := uint64(0xff >> (8 - n))
-		res |= uint64((b.c.get(i) >> (bits - n))) & mask
-		if n == bits {
-			bits = 8
-			i++
+		res = appendBits(res, n, 8-*bits, *bits-n, b.c.get(*i))
+		if n == *bits {
+			*bits = 8
+			advance()
 			return res, nil
 		}
-		bits -= n
+		*bits -= n
 		return res, nil
 	}
+}
+
+func appendBits(res uint64, rshift, mshift, bshift uint, from byte) uint64 {
+	res = res << rshift
+	mask := uint64(0xff >> mshift)
+	res |= uint64(from>>bshift) & mask
+	return res
 }
 
 func (b *BitReader) resizeCache(n uint) error {
