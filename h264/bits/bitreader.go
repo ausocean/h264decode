@@ -68,9 +68,9 @@ func (b *BitReader) ReadBits(n uint) (uint64, error) {
 		return 0, errMaxBits
 	}
 
-	cl := b.cacheLen()
-	if n > cl {
-		nbytes := math.Ceil(float64(n-cl) / 8.0)
+	l := 8*(uint(len(*b.c))-1) + b.bits
+	if n > l {
+		nbytes := math.Ceil(float64(n-l) / 8.0)
 		b.tmp = b.tmp[:int(nbytes)]
 		_, err := b.r.Read(b.tmp)
 		if err != nil {
@@ -102,10 +102,6 @@ func (b *BitReader) ReadBits(n uint) (uint64, error) {
 		b.bits -= n
 		return res, nil
 	}
-}
-
-func (b *BitReader) cacheLen() uint {
-	return 8*(uint(len(*b.c))-1) + b.bits
 }
 
 func (b *BitReader) PeekBits(n int) (uint64, int, error) {
