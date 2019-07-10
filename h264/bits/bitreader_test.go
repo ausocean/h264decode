@@ -66,6 +66,12 @@ func TestReadBits(t *testing.T) {
 			[]uint64{0xffff},
 			[]error{nil},
 		},
+		{
+			[]byte{0x8f, 0xe3},
+			[]uint{4, 2, 4, 6},
+			[]uint64{0x8, 0x3, 0xf, 0x23},
+			[]error{nil, nil, nil, nil},
+		},
 	}
 
 	for i, test := range tests {
