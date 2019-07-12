@@ -11,6 +11,7 @@ package bits
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"reflect"
 	"testing"
 )
@@ -45,6 +46,12 @@ func TestReadBits(t *testing.T) {
 			n:    []int{8, 8},
 			want: []uint64{0xff, 0xff},
 			err:  []error{nil, nil},
+		},
+		{
+			in:   []byte{0xff, 0xff},
+			n:    []int{8, 10},
+			want: []uint64{0xff, 0},
+			err:  []error{nil, io.ErrUnexpectedEOF},
 		},
 		{
 			in:   []byte{0xff, 0xff},
@@ -118,6 +125,12 @@ func TestPeekBits(t *testing.T) {
 			want: []uint64{0x4, 0x11, 0x23f},
 			err:  []error{nil, nil, nil},
 		},
+		{
+			in:   []byte{0x8f, 0xe3},
+			n:    []int{3, 20, 10},
+			want: []uint64{0x4, 0, 0x23f},
+			err:  []error{nil, io.ErrUnexpectedEOF, nil},
+		},
 	}
 
 	for i, test := range tests {
@@ -152,14 +165,12 @@ func TestReadOrPeek(t *testing.T) {
 		op   []int    // The series of operations we want to perform (read or peek).
 		n    []int    // The values of n for the reads/peeks we wish to do.
 		want []uint64 // The results we expect for each ReadBits call.
-		err  []error  // The error expected from each ReadBits call.
 	}{
 		{
 			in:   []byte{0x8f, 0xe3, 0x8f, 0xe3},
 			op:   []int{read, peek, peek, read, peek},
 			n:    []int{13, 3, 3, 7, 12},
 			want: []uint64{0x11fc, 0x3, 0x3, 0x38, 0xfe3},
-			err:  []error{nil, nil, nil, nil, nil},
 		},
 	}
 
@@ -184,7 +195,7 @@ func TestReadOrPeek(t *testing.T) {
 				panic(fmt.Sprintf("bad test: invalid operation: %d", op))
 			}
 			got = append(got, bits)
-			if err != test.err[j] {
+			if err != nil {
 				t.Fatalf("did not expect error: %v for operation: %d test: %d", err, j, i)
 			}
 		}
