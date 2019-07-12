@@ -13,8 +13,6 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
-
-	"github.com/pkg/errors"
 )
 
 func TestReadBits(t *testing.T) {
@@ -76,7 +74,7 @@ func TestReadBits(t *testing.T) {
 		var got []uint64
 		for j, n := range test.n {
 			bits, err := br.ReadBits(n)
-			if err != nil && errors.Cause(err) != test.err[j] {
+			if err != test.err[j] {
 				t.Fatalf("did not expect error: %v for read: %d test: %d", err, j, i)
 			}
 			got = append(got, bits)
@@ -129,7 +127,7 @@ func TestPeekBits(t *testing.T) {
 		var got []uint64
 		for j, n := range test.n {
 			bits, err := br.PeekBits(n)
-			if err != nil && errors.Cause(err) != test.err[j] {
+			if err != test.err[j] {
 				t.Fatalf("did not expect error: %v for peek: %d test: %d", err, j, i)
 			}
 			got = append(got, bits)
@@ -186,7 +184,7 @@ func TestReadOrPeek(t *testing.T) {
 				panic(fmt.Sprintf("bad test: invalid operation: %d", op))
 			}
 			got = append(got, bits)
-			if err != nil && errors.Cause(err) != test.err[j] {
+			if err != test.err[j] {
 				t.Fatalf("did not expect error: %v for operation: %d test: %d", err, j, i)
 			}
 		}
