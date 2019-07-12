@@ -70,8 +70,8 @@ func NewBitReader(r io.Reader) *BitReader {
 // n = 2, res = 0x3 (0011)
 // n = 4, res = 0xf (1111)
 // n = 6, res = 0x23 (0010 0011)
-func (br *BitReader) ReadBits(bits uint) (uint64, error) {
-	for bits > br.bits {
+func (br *BitReader) ReadBits(n uint) (uint64, error) {
+	for n > br.bits {
 		b, err := br.r.ReadByte()
 		if err == io.EOF {
 			return 0, io.ErrUnexpectedEOF
@@ -84,9 +84,9 @@ func (br *BitReader) ReadBits(bits uint) (uint64, error) {
 		br.bits += 8
 	}
 
-	n := (br.n >> (br.bits - bits)) & ((1 << bits) - 1)
-	br.bits -= bits
-	return n, nil
+	r := (br.n >> (br.bits - n)) & ((1 << n) - 1)
+	br.bits -= n
+	return r, nil
 }
 
 // PeekBits provides the next n bits, but without advancing through the source.
@@ -95,25 +95,25 @@ func (br *BitReader) ReadBits(bits uint) (uint64, error) {
 // n = 4, res = 0x8 (1000)
 // n = 8, res = 0x8f (1000 1111)
 // n = 16, res = 0x8fe3 (1000 1111, 1110 0011)
-func (br *BitReader) PeekBits(bits uint) (uint64, error) {
-	byt, err := br.r.Peek(int((bits-br.bits)+7) / 8)
-	_bits := br.bits
+func (br *BitReader) PeekBits(n uint) (uint64, error) {
+	byt, err := br.r.Peek(int((n-br.bits)+7) / 8)
+	bits := br.bits
 	if err != nil {
 		if err == io.EOF {
 			return 0, io.ErrUnexpectedEOF
 		}
 		return 0, err
 	}
-	for i := 0; bits > _bits; i++ {
+	for i := 0; n > bits; i++ {
 		b := byt[i]
 		if err != nil {
 			return 0, err
 		}
 		br.n <<= 8
 		br.n |= uint64(b)
-		_bits += 8
+		bits += 8
 	}
 
-	n := (br.n >> (_bits - bits)) & ((1 << bits) - 1)
-	return n, nil
+	r := (br.n >> (bits - n)) & ((1 << n) - 1)
+	return r, nil
 }
