@@ -71,17 +71,15 @@ func TestReadBits(t *testing.T) {
 	for i, test := range tests {
 		br := NewBitReader(bytes.NewReader(test.in))
 
-		// Holds the results from the reads.
-		got := make([]uint64, len(test.n))
-
 		// For each value of n defined in test.reads, we call br.ReadBits, collect
 		// the result and check the error.
-		var err error
+		var got []uint64
 		for j, n := range test.n {
-			got[j], err = br.ReadBits(n)
+			bits, err := br.ReadBits(n)
 			if err != nil && errors.Cause(err) != test.err[j] {
 				t.Fatalf("did not expect error: %v for read: %d test: %d", err, j, i)
 			}
+			got = append(got, bits)
 		}
 
 		// Now we can check the read results.
@@ -128,17 +126,14 @@ func TestPeekBits(t *testing.T) {
 	for i, test := range tests {
 		br := NewBitReader(bytes.NewReader(test.in))
 
-		// Holds the results from the peeks.
-		got := make([]uint64, len(test.n))
-
-		// For each value of n defined in test.peeks, we call br.PeekBits, collect
-		// the result and check the error.
-		var err error
+		// Call PeekBits for each value of n defined in test.
+		var got []uint64
 		for j, n := range test.n {
-			got[j], err = br.PeekBits(n)
+			bits, err := br.PeekBits(n)
 			if err != nil && errors.Cause(err) != test.err[j] {
 				t.Fatalf("did not expect error: %v for peek: %d test: %d", err, j, i)
 			}
+			got = append(got, bits)
 		}
 
 		// Now we can check the peek results.
@@ -175,21 +170,24 @@ func TestReadOrPeek(t *testing.T) {
 	for i, test := range tests {
 		br := NewBitReader(bytes.NewReader(test.in))
 
-		// Holds the results from the peeks.
-		got := make([]uint64, len(test.op))
+		var (
+			bits uint64
+			got  []uint64
+			err  error
+		)
 
-		// For each value of n defined in test.peeks, we call br.PeekBits, collect
-		// the result and check the error.
-		var err error
+		// Go through the operations we wish to perform for this test and collect
+		// results/errors.
 		for j, op := range test.op {
 			switch op {
 			case read:
-				got[j], err = br.ReadBits(test.n[j])
+				bits, err = br.ReadBits(test.n[j])
 			case peek:
-				got[j], err = br.PeekBits(test.n[j])
+				bits, err = br.PeekBits(test.n[j])
 			default:
 				t.Fatalf("unrecognised operation requested")
 			}
+			got = append(got, bits)
 			if err != nil && errors.Cause(err) != test.err[j] {
 				t.Fatalf("did not expect error: %v for operation: %d test: %d", err, j, i)
 			}
