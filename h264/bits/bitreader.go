@@ -38,7 +38,7 @@ LICENSE
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-	Copyright (C) 2017-2018 the Australian Ocean Lab (AusOcean)
+  Copyright (C) 2017-2018 the Australian Ocean Lab (AusOcean)
 
   It is free software: you can redistribute it and/or modify them
   under the terms of the GNU General Public License as published by the
