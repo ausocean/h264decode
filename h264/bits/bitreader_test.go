@@ -10,6 +10,7 @@ package bits
 
 import (
 	"bytes"
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -182,7 +183,7 @@ func TestReadOrPeek(t *testing.T) {
 			case peek:
 				bits, err = br.PeekBits(test.n[j])
 			default:
-				t.Fatalf("unrecognised operation requested")
+				panic(fmt.Sprintf("bad test: invalid operation: %d", op))
 			}
 			got = append(got, bits)
 			if err != nil && errors.Cause(err) != test.err[j] {
