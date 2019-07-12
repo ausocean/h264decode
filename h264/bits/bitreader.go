@@ -7,6 +7,8 @@ AUTHORS
   Saxon Nelson-Milton <saxon@ausocean.org>, The Australian Ocean Laboratory (AusOcean)
 
 LICENSE
+  This code is a modification of code from:
+	https://golang.org/src/compress/bzip2/bit_reader.go.
 
   Copyright (c) 2009 The Go Authors. All rights reserved.
 
@@ -46,17 +48,22 @@ import (
 	"io"
 )
 
+type bytePeeker interface {
+	io.ByteReader
+	Peek(int) ([]byte, error)
+}
+
 // BitReader is a bit reader that provides methods for reading bits from an
 // io.Reader source.
 type BitReader struct {
-	r    *bufio.Reader
+	r    bytePeeker
 	n    uint64
 	bits uint
 }
 
 // NewBitReader returns a new BitReader.
 func NewBitReader(r io.Reader) *BitReader {
-	byter, ok := r.(*bufio.Reader)
+	byter, ok := r.(bytePeeker)
 	if !ok {
 		byter = bufio.NewReader(r)
 	}
