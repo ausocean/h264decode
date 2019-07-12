@@ -5,6 +5,36 @@ DESCRIPTION
 
 AUTHORS
   Saxon Nelson-Milton <saxon@ausocean.org>, The Australian Ocean Laboratory (AusOcean)
+
+LICENSE
+
+  Copyright (c) 2009 The Go Authors. All rights reserved.
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions are
+  met:
+
+    * Redistributions of source code must retain the above copyright
+  notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above
+  copyright notice, this list of conditions and the following disclaimer
+  in the documentation and/or other materials provided with the
+  distribution.
+    * Neither the name of Google Inc. nor the names of its
+  contributors may be used to endorse or promote products derived from
+  this software without specific prior written permission.
+
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // Package bits provides a bit reader implementation that can read or peek from
@@ -12,56 +42,26 @@ AUTHORS
 package bits
 
 import (
+	"bufio"
 	"io"
-	"math"
-
-	"github.com/pkg/errors"
 )
-
-const (
-	maxBits  = 64          // Max number of bits we can read in one go.
-	maxBytes = maxBits / 8 // Max number of bytes we will need in the tmp slice.
-)
-
-type cache []byte
-
-// add adds a byte to the end of the cache.
-func (c *cache) add(d []byte) {
-	*c = append(*c, d...)
-}
-
-// delete removes the byte at the start of the cache.
-func (c *cache) delete() {
-	copy((*c)[0:], (*c)[1:])
-	(*c) = (*c)[:len(*c)-1]
-}
-
-// next provides the byte at the start of the cache.
-func (c *cache) get(i int) byte {
-	return (*c)[i]
-}
 
 // BitReader is a bit reader that provides methods for reading bits from an
 // io.Reader source.
 type BitReader struct {
-	r    io.Reader // The data source.
-	c    *cache    // Cache to hold data we're in the middle of reading.
-	bits uint      // Denotes the number of bits left in the start byte of the cache.
-	tmp  []byte    // Used to get data from the source and copy into the cache.
+	r    *bufio.Reader
+	n    uint64
+	bits uint
 }
 
 // NewBitReader returns a new BitReader.
 func NewBitReader(r io.Reader) *BitReader {
-	return &BitReader{
-		r:    r,
-		bits: 8,
-		tmp:  make([]byte, 0, maxBytes),
-		c:    (*cache)(&[]byte{}),
+	byter, ok := r.(*bufio.Reader)
+	if !ok {
+		byter = bufio.NewReader(r)
 	}
+	return &BitReader{r: byter}
 }
-
-// Error used by ReadBits.
-var errMaxBits = errors.New("can not read more than 64 bits")
 
 // ReadBits reads n bits from the source and returns as an uint64.
 // For example, with a source as []byte{0x8f,0xe3} (1000 1111, 1110 0011), we
@@ -70,9 +70,23 @@ var errMaxBits = errors.New("can not read more than 64 bits")
 // n = 2, res = 0x3 (0011)
 // n = 4, res = 0xf (1111)
 // n = 6, res = 0x23 (0010 0011)
-func (b *BitReader) ReadBits(n uint) (uint64, error) {
-	var i int
-	return b.readBits(n, &b.bits, &i, func() { b.c.delete() })
+func (br *BitReader) ReadBits(bits uint) (uint64, error) {
+	for bits > br.bits {
+		b, err := br.r.ReadByte()
+		if err == io.EOF {
+			return 0, io.ErrUnexpectedEOF
+		}
+		if err != nil {
+			return 0, err
+		}
+		br.n <<= 8
+		br.n |= uint64(b)
+		br.bits += 8
+	}
+
+	n := (br.n >> (br.bits - bits)) & ((1 << bits) - 1)
+	br.bits -= bits
+	return n, nil
 }
 
 // PeekBits provides the next n bits, but without advancing through the source.
@@ -81,66 +95,25 @@ func (b *BitReader) ReadBits(n uint) (uint64, error) {
 // n = 4, res = 0x8 (1000)
 // n = 8, res = 0x8f (1000 1111)
 // n = 16, res = 0x8fe3 (1000 1111, 1110 0011)
-func (b *BitReader) PeekBits(n uint) (uint64, error) {
-	bits := b.bits
-	var i int
-	return b.readBits(n, &bits, &i, func() { i++ })
-}
-
-// readBits gets n bits from the source and either leaves the touched data in
-// the cache (usage with PeekBits), or advances the position in the source
-// (usage with ReadBits), as controlled by advance.
-func (b *BitReader) readBits(n uint, bits *uint, i *int, advance func()) (uint64, error) {
-	if n > maxBits {
-		return 0, errMaxBits
-	}
-
-	err := b.resizeCache(n)
+func (br *BitReader) PeekBits(bits uint) (uint64, error) {
+	byt, err := br.r.Peek(int((bits-br.bits)+7) / 8)
+	_bits := br.bits
 	if err != nil {
-		return 0, errors.Wrap(err, "could not resize cache")
-	}
-
-	var res uint64
-	for {
-		if n > *bits {
-			res = appendBits(res, *bits, 8-*bits, 0, b.c.get(*i))
-			n -= *bits
-			*bits = 8
-			advance()
-			continue
+		if err == io.EOF {
+			return 0, io.ErrUnexpectedEOF
 		}
-
-		res = appendBits(res, n, 8-*bits, *bits-n, b.c.get(*i))
-		if n == *bits {
-			*bits = 8
-			advance()
-			return res, nil
-		}
-		*bits -= n
-		return res, nil
+		return 0, err
 	}
-}
-
-// resizeCache checks that the cache contains enough data for n reads, and if
-// not adds some more data to it form the source.
-func (b *BitReader) resizeCache(n uint) error {
-	l := 8*(uint(len(*b.c))-1) + b.bits
-	if n > l {
-		nbytes := math.Ceil(float64(n-l) / 8.0)
-		b.tmp = b.tmp[:int(nbytes)]
-		_, err := b.r.Read(b.tmp)
+	for i := 0; bits > _bits; i++ {
+		b := byt[i]
 		if err != nil {
-			return errors.Wrap(err, "could not read more data from source")
+			return 0, err
 		}
-		b.c.add(b.tmp)
+		br.n <<= 8
+		br.n |= uint64(b)
+		_bits += 8
 	}
-	return nil
-}
 
-// appendBits appends bits to res and returns the result.
-func appendBits(res uint64, rshift, mshift, bshift uint, from byte) uint64 {
-	res = res << rshift
-	mask := uint64(0xff >> mshift)
-	res |= uint64(from>>bshift) & mask
-	return res
+	n := (br.n >> (_bits - bits)) & ((1 << bits) - 1)
+	return n, nil
 }
