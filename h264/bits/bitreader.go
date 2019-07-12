@@ -63,7 +63,8 @@ func NewBitReader(r io.Reader) *BitReader {
 	return &BitReader{r: byter}
 }
 
-// ReadBits reads n bits from the source and returns as an uint64.
+// ReadBits reads n bits from the source and returns them the least-significant
+// part of a uint64.
 // For example, with a source as []byte{0x8f,0xe3} (1000 1111, 1110 0011), we
 // would get the following results for consequtive reads with n values:
 // n = 4, res = 0x8 (1000)
@@ -84,12 +85,27 @@ func (br *BitReader) ReadBits(n uint) (uint64, error) {
 		br.bits += 8
 	}
 
+	// br.n looks like this (assuming that br.bits = 14 and bits = 6):
+	// Bit: 111111
+	//      5432109876543210
+	//
+	//         (6 bits, the desired output)
+	//        |-----|
+	//        V     V
+	//      0101101101001110
+	//        ^            ^
+	//        |------------|
+	//           br.bits (num valid bits)
+	//
+	// This the next line right shifts the desired bits into the
+	// least-significant places and masks off anything above.
 	r := (br.n >> (br.bits - n)) & ((1 << n) - 1)
 	br.bits -= n
 	return r, nil
 }
 
-// PeekBits provides the next n bits, but without advancing through the source.
+// PeekBits provides the next n bits returning them in the least-significant
+// part of a uint64, without advancing through the source.
 // For example, with a source as []byte{0x8f,0xe3} (1000 1111, 1110 0011), we
 // would get the following results for consequtive peeks with n values:
 // n = 4, res = 0x8 (1000)
