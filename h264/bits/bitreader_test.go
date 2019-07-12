@@ -18,49 +18,49 @@ import (
 func TestReadBits(t *testing.T) {
 	tests := []struct {
 		in   []byte   // The bytes the source io.Reader will be initialised with.
-		n    []uint   // The values of n for the reads we wish to do.
+		n    []int    // The values of n for the reads we wish to do.
 		want []uint64 // The results we expect for each ReadBits call.
 		err  []error  // The error expected from each ReadBits call.
 	}{
 		{
 			in:   []byte{0xff},
-			n:    []uint{8},
+			n:    []int{8},
 			want: []uint64{0xff},
 			err:  []error{nil},
 		},
 		{
 			in:   []byte{0xff},
-			n:    []uint{4, 4},
+			n:    []int{4, 4},
 			want: []uint64{0x0f, 0x0f},
 			err:  []error{nil, nil},
 		},
 		{
 			in:   []byte{0xff},
-			n:    []uint{1, 7},
+			n:    []int{1, 7},
 			want: []uint64{0x01, 0x7f},
 			err:  []error{nil, nil},
 		},
 		{
 			in:   []byte{0xff, 0xff},
-			n:    []uint{8, 8},
+			n:    []int{8, 8},
 			want: []uint64{0xff, 0xff},
 			err:  []error{nil, nil},
 		},
 		{
 			in:   []byte{0xff, 0xff},
-			n:    []uint{4, 8, 4},
+			n:    []int{4, 8, 4},
 			want: []uint64{0x0f, 0xff, 0x0f},
 			err:  []error{nil, nil, nil},
 		},
 		{
 			in:   []byte{0xff, 0xff},
-			n:    []uint{16},
+			n:    []int{16},
 			want: []uint64{0xffff},
 			err:  []error{nil},
 		},
 		{
 			in:   []byte{0x8f, 0xe3},
-			n:    []uint{4, 2, 4, 6},
+			n:    []int{4, 2, 4, 6},
 			want: []uint64{0x8, 0x3, 0xf, 0x23},
 			err:  []error{nil, nil, nil, nil},
 		},
@@ -90,31 +90,31 @@ func TestReadBits(t *testing.T) {
 func TestPeekBits(t *testing.T) {
 	tests := []struct {
 		in   []byte
-		n    []uint
+		n    []int
 		want []uint64
 		err  []error
 	}{
 		{
 			in:   []byte{0xff},
-			n:    []uint{8},
+			n:    []int{8},
 			want: []uint64{0xff},
 			err:  []error{nil},
 		},
 		{
 			in:   []byte{0x8f, 0xe3},
-			n:    []uint{4, 8, 16},
+			n:    []int{4, 8, 16},
 			want: []uint64{0x8, 0x8f, 0x8fe3},
 			err:  []error{nil, nil, nil},
 		},
 		{
 			in:   []byte{0x8f, 0xe3, 0x8f, 0xe3},
-			n:    []uint{32},
+			n:    []int{32},
 			want: []uint64{0x8fe38fe3},
 			err:  []error{nil},
 		},
 		{
 			in:   []byte{0x8f, 0xe3},
-			n:    []uint{3, 5, 10},
+			n:    []int{3, 5, 10},
 			want: []uint64{0x4, 0x11, 0x23f},
 			err:  []error{nil, nil, nil},
 		},
@@ -150,14 +150,14 @@ func TestReadOrPeek(t *testing.T) {
 	tests := []struct {
 		in   []byte   // The bytes the source io.Reader will be initialised with.
 		op   []int    // The series of operations we want to perform (read or peek).
-		n    []uint   // The values of n for the reads/peeks we wish to do.
+		n    []int    // The values of n for the reads/peeks we wish to do.
 		want []uint64 // The results we expect for each ReadBits call.
 		err  []error  // The error expected from each ReadBits call.
 	}{
 		{
 			in:   []byte{0x8f, 0xe3, 0x8f, 0xe3},
 			op:   []int{read, peek, peek, read, peek},
-			n:    []uint{13, 3, 3, 7, 12},
+			n:    []int{13, 3, 3, 7, 12},
 			want: []uint64{0x11fc, 0x3, 0x3, 0x38, 0xfe3},
 			err:  []error{nil, nil, nil, nil, nil},
 		},

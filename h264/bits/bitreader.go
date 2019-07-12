@@ -58,7 +58,7 @@ type bytePeeker interface {
 type BitReader struct {
 	r    bytePeeker
 	n    uint64
-	bits uint
+	bits int
 }
 
 // NewBitReader returns a new BitReader.
@@ -78,7 +78,7 @@ func NewBitReader(r io.Reader) *BitReader {
 // n = 2, res = 0x3 (0011)
 // n = 4, res = 0xf (1111)
 // n = 6, res = 0x23 (0010 0011)
-func (br *BitReader) ReadBits(n uint) (uint64, error) {
+func (br *BitReader) ReadBits(n int) (uint64, error) {
 	for n > br.bits {
 		b, err := br.r.ReadByte()
 		if err == io.EOF {
@@ -106,7 +106,7 @@ func (br *BitReader) ReadBits(n uint) (uint64, error) {
 	//
 	// This the next line right shifts the desired bits into the
 	// least-significant places and masks off anything above.
-	r := (br.n >> (br.bits - n)) & ((1 << n) - 1)
+	r := (br.n >> uint(br.bits-n)) & ((1 << uint(n)) - 1)
 	br.bits -= n
 	return r, nil
 }
@@ -118,7 +118,7 @@ func (br *BitReader) ReadBits(n uint) (uint64, error) {
 // n = 4, res = 0x8 (1000)
 // n = 8, res = 0x8f (1000 1111)
 // n = 16, res = 0x8fe3 (1000 1111, 1110 0011)
-func (br *BitReader) PeekBits(n uint) (uint64, error) {
+func (br *BitReader) PeekBits(n int) (uint64, error) {
 	byt, err := br.r.Peek(int((n-br.bits)+7) / 8)
 	bits := br.bits
 	if err != nil {
@@ -137,6 +137,6 @@ func (br *BitReader) PeekBits(n uint) (uint64, error) {
 		bits += 8
 	}
 
-	r := (br.n >> (bits - n)) & ((1 << n) - 1)
+	r := (br.n >> uint(bits-n)) & ((1 << uint(n)) - 1)
 	return r, nil
 }
