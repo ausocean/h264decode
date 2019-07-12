@@ -16,7 +16,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// TestReadBits checks that BitReader.ReadBits behaves as expected.
 func TestReadBits(t *testing.T) {
 	tests := []struct {
 		in   []byte   // The bytes the source io.Reader will be initialised with.
@@ -89,7 +88,6 @@ func TestReadBits(t *testing.T) {
 	}
 }
 
-// TestPeekBits checks that BitReader.PeekBits behaves as expected.
 func TestPeekBits(t *testing.T) {
 	tests := []struct {
 		in   []byte
@@ -143,7 +141,6 @@ func TestPeekBits(t *testing.T) {
 	}
 }
 
-// TestReadOrPeek checks the results of a series of reads and peeks.
 func TestReadOrPeek(t *testing.T) {
 	// The possible operations we might make.
 	const (
