@@ -907,22 +907,18 @@ func NewSliceContext(videoStream *VideoStream, nalUnit *NalUnit, rbsp []byte, sh
 		}
 		return false
 	}
-	header.FirstMbInSlice, err = readUe(nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not parse FirstMbInSlice")
-	}
 
-	header.SliceType, err = readUe(nil)
+	err = readUes(nil, []ue{
+		{&header.FirstMbInSlice, "FirstMbInSlice"},
+		{&header.SliceType, "SliceType"},
+		{&header.PPSID, "PPSID"},
+	})
 	if err != nil {
-		return nil, errors.Wrap(err, "could not parse SliceType")
+		return nil, err
 	}
 
 	sliceType := sliceTypeMap[header.SliceType]
 	logger.Printf("debug: %s (%s) slice of %d bytes\n", NALUnitType[nalUnit.Type], sliceType, len(rbsp))
-	header.PPSID, err = readUe(nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not parse PPSID")
-	}
 
 	if sps.UseSeparateColorPlane {
 		header.ColorPlaneID = b.NextField("ColorPlaneID", 2)

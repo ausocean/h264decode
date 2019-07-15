@@ -271,14 +271,12 @@ func NewSPS(rbsp []byte, showPacket bool) (*SPS, error) {
 			}
 		}
 
-		sps.BitDepthLumaMinus8, err = readUe(nil)
+		err = readUes(nil, []ue{
+			{&sps.BitDepthLumaMinus8, "BitDepthLumaMinus8"},
+			{&sps.BitDepthChromaMinus8, "BitDepthChromaMinus8"},
+		})
 		if err != nil {
-			return nil, errors.Wrap(err, "could not parse BitDepthLumaMinus8")
-		}
-
-		sps.BitDepthChromaMinus8, err = readUe(nil)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not parse BitDepthChromaMinus8")
+			return nil, err
 		}
 
 		if v := b.NextField("QPrimeYZeroTransformBypassFlag", 1); v == 1 {
@@ -327,14 +325,12 @@ func NewSPS(rbsp []byte, showPacket bool) (*SPS, error) {
 	// showSPS()
 	// return sps
 	// Possibly wrong due to no scaling list being built
-	sps.Log2MaxFrameNumMinus4, err = readUe(nil)
+	err = readUes(nil, []ue{
+		{&sps.Log2MaxFrameNumMinus4, "Log2MaxFrameNumMinus4"},
+		{&sps.PicOrderCountType, "PicOrderCountType"},
+	})
 	if err != nil {
-		return nil, errors.Wrap(err, "could not parse Log2MaxFrameNumMinus4")
-	}
-
-	sps.PicOrderCountType, err = readUe(nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not parse PicOrderCountType")
+		return nil, err
 	}
 
 	if sps.PicOrderCountType == 0 {
@@ -410,24 +406,14 @@ func NewSPS(rbsp []byte, showPacket bool) (*SPS, error) {
 		sps.FrameCropping = true
 	}
 	if sps.FrameCropping {
-		sps.FrameCropLeftOffset, err = readUe(nil)
+		err = readUes(nil, []ue{
+			{&sps.FrameCropLeftOffset, "FrameCropLeftOffset"},
+			{&sps.FrameCropRightOffset, "FrameCropRightOffset"},
+			{&sps.FrameCropTopOffset, "FrameCropTopOffset"},
+			{&sps.FrameCropBottomOffset, "FrameCropBottomOffset"},
+		})
 		if err != nil {
-			return nil, errors.Wrap(err, "could not parse FrameCropLeftOffset")
-		}
-
-		sps.FrameCropRightOffset, err = readUe(nil)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not parse FrameCropRightOffset")
-		}
-
-		sps.FrameCropTopOffset, err = readUe(nil)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not parse FrameCropTopOffset")
-		}
-
-		sps.FrameCropBottomOffset, err = readUe(nil)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not parse FrameCropBottomOffset")
+			return nil, err
 		}
 	}
 	if v := b.NextField("VUIParametersPresentFlag", 1); v == 1 {
@@ -477,14 +463,12 @@ func NewSPS(rbsp []byte, showPacket bool) (*SPS, error) {
 			sps.ChromaLocInfoPresent = true
 		}
 		if sps.ChromaLocInfoPresent {
-			sps.ChromaSampleLocTypeTopField, err = readUe(nil)
+			err = readUes(nil, []ue{
+				{&sps.ChromaSampleLocTypeTopField, "ChromaSampleLocTypeTopField"},
+				{&sps.ChromaSampleLocTypeBottomField, "ChromaSampleLocTypeBottomField"},
+			})
 			if err != nil {
-				return nil, errors.Wrap(err, "could not parse ChromaSampleLocTypeTopField")
-			}
-
-			sps.ChromaSampleLocTypeBottomField, err = readUe(nil)
-			if err != nil {
-				return nil, errors.Wrap(err, "could not parse ChromaSampleLocTypeBottomField")
+				return nil, err
 			}
 		}
 
@@ -531,34 +515,17 @@ func NewSPS(rbsp []byte, showPacket bool) (*SPS, error) {
 			if v := b.NextField("MotionVectorsOverPicBoundaries", 1); v == 1 {
 				sps.MotionVectorsOverPicBoundaries = true
 			}
-			sps.MaxBytesPerPicDenom, err = readUe(nil)
-			if err != nil {
-				return nil, errors.Wrap(err, "could not parse MaxBytesPerPicDenom")
-			}
 
-			sps.MaxBitsPerMbDenom, err = readUe(nil)
+			err = readUes(nil, []ue{
+				{&sps.MaxBytesPerPicDenom, "MaxBytesPerPicDenom"},
+				{&sps.MaxBitsPerMbDenom, "MaxBitsPerMbDenom"},
+				{&sps.Log2MaxMvLengthHorizontal, "Log2MaxMvLengthHorizontal"},
+				{&sps.Log2MaxMvLengthVertical, "Log2MaxMvLengthVertical"},
+				{&sps.MaxNumReorderFrames, "MaxNumReorderFrames"},
+				{&sps.MaxDecFrameBuffering, "MaxDecFrameBuffering"},
+			})
 			if err != nil {
-				return nil, errors.Wrap(err, "could not parse MaxBitsPerMbDenom")
-			}
-
-			sps.Log2MaxMvLengthHorizontal, err = readUe(nil)
-			if err != nil {
-				return nil, errors.Wrap(err, "could not parse Log2MaxMvLengthHorizontal")
-			}
-
-			sps.Log2MaxMvLengthVertical, err = readUe(nil)
-			if err != nil {
-				return nil, errors.Wrap(err, "could not parse Log2MaxMvLengthVertical")
-			}
-
-			sps.MaxNumReorderFrames, err = readUe(nil)
-			if err != nil {
-				return nil, errors.Wrap(err, "could not parse MaxNumReorderFrames")
-			}
-
-			sps.MaxDecFrameBuffering, err = readUe(nil)
-			if err != nil {
-				return nil, errors.Wrap(err, "could not parse MaxDecFrameBuffering")
+				return nil, err
 			}
 		}
 
