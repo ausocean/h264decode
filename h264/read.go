@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/ausocean/h264decode/h264/bits"
+	"github.com/pkg/errors"
 )
 
 type BitReader struct {
@@ -300,4 +303,21 @@ func (b *BitReader) StreamPosition() (int, int, int) {
 
 func (b *BitReader) LogStreamPosition() {
 	logger.Printf("debug: %d byte stream @ byte %d bit %d\n", len(b.bytes), b.byteOffset, b.bitOffset)
+}
+
+type ue struct {
+	loc  *int
+	name string
+}
+
+func readUes(br *bits.BitReader, ues []ue) error {
+	var err error
+	for _, f := range ues {
+		// TODO: give readUe br once readUe takes bits.BitReader
+		*f.loc, err = readUe(nil)
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("could not parse %s", f.name))
+		}
+	}
+	return nil
 }
