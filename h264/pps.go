@@ -53,15 +53,13 @@ func NewPPS(sps *SPS, rbsp []byte, showPacket bool) (*PPS, error) {
 		return false
 	}
 
-	var err error
-	pps.ID, err = readUe(nil)
+	// TODO: give this *bits.BitReader when using in here.
+	err := readUes(nil, []ue{
+		{&pps.ID, "ID"},
+		{&pps.SPSID, "SPSID"},
+	})
 	if err != nil {
-		return nil, errors.Wrap(err, "could not parse ID")
-	}
-
-	pps.SPSID, err = readUe(nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not parse SPS ID")
+		return nil, err
 	}
 
 	pps.EntropyCodingMode = b.NextField("EntropyCodingModeFlag", 1)
@@ -87,17 +85,12 @@ func NewPPS(sps *SPS, rbsp []byte, showPacket bool) (*PPS, error) {
 			}
 		} else if pps.SliceGroupMapType == 2 {
 			for iGroup := 0; iGroup < pps.NumSliceGroupsMinus1; iGroup++ {
-				pps.TopLeft[iGroup], err = readUe(nil)
+				err := readUes(nil, []ue{
+					{&pps.TopLeft[iGroup], "pps.TopLeft[iGroup]"},
+					{&pps.BottomRight[iGroup], "BottomRight[iGroup]"},
+				})
 				if err != nil {
-					return nil, errors.Wrap(err, "could not parse TopLeft[iGroup]")
-				}
-				if err != nil {
-					return nil, errors.Wrap(err, "could not parse TopLeft[iGroup]")
-				}
-
-				pps.BottomRight[iGroup], err = readUe(nil)
-				if err != nil {
-					return nil, errors.Wrap(err, "could not parse BottomRight[iGroup]")
+					return nil, err
 				}
 			}
 		} else if pps.SliceGroupMapType > 2 && pps.SliceGroupMapType < 6 {
@@ -121,14 +114,13 @@ func NewPPS(sps *SPS, rbsp []byte, showPacket bool) (*PPS, error) {
 		}
 
 	}
-	pps.NumRefIdxL0DefaultActiveMinus1, err = readUe(nil)
-	if err != nil {
-		return nil, errors.New("could not parse NumRefIdxL0DefaultActiveMinus1")
-	}
 
-	pps.NumRefIdxL1DefaultActiveMinus1, err = readUe(nil)
+	err = readUes(nil, []ue{
+		{&pps.NumRefIdxL0DefaultActiveMinus1, "NumRefIdxL0DefaultActiveMinus1"},
+		{&pps.NumRefIdxL1DefaultActiveMinus1, "NumRefIdxL1DefaultActiveMinus1"},
+	})
 	if err != nil {
-		return nil, errors.New("could not parse NumRefIdxL1DefaultActiveMinus1")
+		return nil, err
 	}
 
 	pps.WeightedPred = flagField()
