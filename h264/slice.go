@@ -592,7 +592,7 @@ func nextMbAddress(n int, sps *SPS, pps *PPS, header *SliceHeader) int {
 	picHeightInMbs := frameHeightInMbs / (1 + flagVal(header.FieldPic))
 	picSizeInMbs := picWidthInMbs * picHeightInMbs
 	mbToSliceGroupMap := MbToSliceGroupMap(sps, pps, header)
-	for i < picSizeInMbs && mbToSliceGroupMap[i] != mbToSliceGroupMap[i] {
+	for i < picSizeInMbs {
 		i++
 	}
 	return i
