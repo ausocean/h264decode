@@ -644,6 +644,10 @@ func NewSPS(rbsp []byte, showPacket bool) (*SPS, error) {
 			{&sps.BitstreamRestriction, "BitStreamRestriction"},
 		})
 
+		if err != nil {
+			return nil, err
+		}
+
 		if sps.BitstreamRestriction {
 			b, err = br.ReadBits(1)
 			if err != nil {
